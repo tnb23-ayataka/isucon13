@@ -950,13 +950,13 @@ module Isupipe
         tx.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
       end
 
-      imgfile = IMAGE_DIR + "/#{username}.jpg"
-      File.open(imgfile, "w") do |f|
-        f.write(image[:image])
-      end
-
       content_type 'image/jpeg'
       if image
+        imgfile = IMAGE_DIR + "/#{username}.jpg"
+        File.open(imgfile, "w") do |f|
+          f.write(image[:image])
+        end
+
         image[:image]
       else
         send_file FALLBACK_IMAGE
