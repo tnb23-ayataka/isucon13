@@ -24,4 +24,4 @@ ALTER TABLE `livecomments` auto_increment = 1;
 ALTER TABLE `livestreams` auto_increment = 1;
 ALTER TABLE `users` auto_increment = 1;
 ALTER TABLE `reactions` DROP INDEX `livestream_id_idx`;
-ALTER TABLE `reactions` ADD INDEX IF NOT EXISTS `livestream_id_idx` (`livestream_id`, `created_at`);
+ALTER TABLE `reactions` ADD INDEX `livestream_id_idx` (`livestream_id`, `created_at`);
