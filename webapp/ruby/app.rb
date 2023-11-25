@@ -991,8 +991,9 @@ module Isupipe
         tx.xquery('INSERT INTO icons (user_id, image) VALUES (?, ?)', user_id, image)
 
         imgfile = IMAGE_DIR + "/#{username}.jpg"
-        FileUtils.mv(image, imgfile)
-        FileUtils.chmod(0644, imgfile)
+        File.open(imgfile, "w") do |f|
+          f.write(image)
+        end
 
         tx.last_id
       end
