@@ -29,7 +29,7 @@ ALTER TABLE `livecomments` ADD INDEX  `livestream_id_idx` (`livestream_id`, `cre
 ALTER TABLE `reactions` DROP INDEX `livestream_id_idx`;
 ALTER TABLE `reactions` ADD INDEX `livestream_id_idx` (`livestream_id`, `created_at`);
 
-ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_livestream_id_idx` (`livestream_id`);
-ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_tag_id_idx` (`tag_id`);
 DROP INDEX `livestream_tags_livestream_id_idx` ON `livestream_tags`;
 DROP INDEX `livestream_tags_tag_id_idx` ON `livestream_tags`;
+ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_livestream_id_idx` (`livestream_id`);
+ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_tag_id_idx` (`tag_id`);
