@@ -380,6 +380,12 @@ module Isupipe
             tag_id_list = tx.xquery('SELECT id FROM tags WHERE name = ?', key_tag_name, as: :array).map(&:first)
             tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.tag_id IN (#{tag_id_list.map {'?'}.join(',')})", tag_id_list)
 
+            livestream_ids = tags.map do |tag|
+              tag.fetch(:livestream_id)
+            end
+
+            tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+
             # tx.xquery('SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC', tag_id_list).map do |key_tagged_livestream|
             #   tx.xquery('SELECT * FROM livestreams WHERE id = ?', key_tagged_livestream.fetch(:livestream_id)).first
             # end
