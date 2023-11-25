@@ -779,24 +779,33 @@ module Isupipe
         word_id = tx.last_id
 
         # NGワードにヒットする過去の投稿も全削除する
-        tx.xquery('SELECT * FROM ng_words WHERE livestream_id = ?', livestream_id).each do |ng_word|
-          # ライブコメント一覧取得
-          tx.xquery('SELECT * FROM livecomments').each do |livecomment|
-            query = <<~SQL
-              DELETE FROM livecomments
-              WHERE
-              id = ? AND
-              livestream_id = ? AND
-              (SELECT COUNT(*)
-              FROM
-              (SELECT ? AS text) AS texts
-              INNER JOIN
-              (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
-              ON texts.text LIKE patterns.pattern) >= 1
-            SQL
-            tx.xquery(query, livecomment.fetch(:id), livestream_id, livecomment.fetch(:comment), ng_word.fetch(:word))
-          end
-        end
+        ng_words = tx.xquery('SELECT * FROM ng_words WHERE livestream_id = ?', livestream_id)
+
+        query = <<~SQL
+          DELETE *
+          FROM livecomments
+          WHERE livestream_id = ?
+            AND ( #{ng_words.map { |ng_word| "comment LIKE '%#{ng_word.fetch(:word)}%'" }.join(' OR ')})
+        SQL
+
+        # ng_words.each do |ng_word|
+        #   # ライブコメント一覧取得
+        #   tx.xquery('SELECT * FROM livecomments').each do |livecomment|
+        #     query = <<~SQL
+        #       DELETE FROM livecomments
+        #       WHERE
+        #       id = ? AND
+        #       livestream_id = ? AND
+        #       (SELECT COUNT(*)
+        #       FROM
+        #       (SELECT ? AS text) AS texts
+        #       INNER JOIN
+        #       (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+        #       ON texts.text LIKE patterns.pattern) >= 1
+        #     SQL
+        #     tx.xquery(query, livecomment.fetch(:id), livestream_id, livecomment.fetch(:comment), ng_word.fetch(:word))
+        #   end
+        # end
 
         word_id
       end
