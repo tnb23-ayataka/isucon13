@@ -154,10 +154,10 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users, livestreams)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
-        user = fill_user_response(tx, user_model)
+        user = fill_user_response_get(tx, user_model, themes, icons)
 
         # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
         livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
@@ -179,6 +179,33 @@ module Isupipe
           user:,
           livestream:,
         )
+      end
+
+      def fill_user_response_get(tx, user_model, themes, icons)
+        # theme_model = tx.xquery('SELECT * FROM themes WHERE user_id = ?', user_model.fetch(:id)).first
+        theme_model = themes[user_model.fetch(:id)]
+        icon_model = icons[user_model.fetch(:id)]
+
+        # icon_model = tx.xquery('SELECT image FROM icons WHERE user_id = ?', user_model.fetch(:id)).first
+        image =
+          if icon_model
+            icon_model.fetch(:image)
+          else
+            File.binread(FALLBACK_IMAGE)
+          end
+        icon_hash = Digest::SHA256.hexdigest(image)
+
+        {
+          id: user_model.fetch(:id),
+          name: user_model.fetch(:name),
+          display_name: user_model.fetch(:display_name),
+          description: user_model.fetch(:description),
+          theme: {
+            id: theme_model.fetch(:id),
+            dark_mode: theme_model.fetch(:dark_mode),
+          },
+          icon_hash:,
+        }
       end
 
       def fill_user_response(tx, user_model)
@@ -726,9 +753,19 @@ module Isupipe
             [livestream.fetch(:id), livestream]
           end.to_h
 
+          themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+          user_ids_to_themes = themes.map do |theme|
+            [theme.fetch(:user_id), theme]
+          end.to_h
+
+          icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+          user_ids_icons = icons.map do |icon|
+            [icon.fetch(:user_id), icon]
+          end.to_h
+
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons)
           end
         end
       end
