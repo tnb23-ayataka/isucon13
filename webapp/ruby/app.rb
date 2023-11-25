@@ -11,6 +11,7 @@ require 'sinatra/base'
 require 'sinatra/json'
 require 'ddtrace'
 require 'pry'
+require 'fileutils'
 
 Datadog.configure do |c|
   c.tracing.instrument :sinatra, service_name: "freee.group:ayataka-13-sinatra", analytics_enabled: true
@@ -18,6 +19,8 @@ Datadog.configure do |c|
   c.env = 'prod'
   c.version = ENV.fetch('APP_VERSION', '12.0.0')
 end
+
+IMAGE_DIR = File.expand_path('../../public/image', __FILE__)
 
 module Isupipe
   class App < Sinatra::Base
@@ -949,8 +952,15 @@ module Isupipe
 
       content_type 'image/jpeg'
       if image
+        imgfile = IMAGE_DIR + "/#{username}.jpg"
+        File.open(imgfile, "w") do |f|
+          f.write(image[:image])
+        end
+
+        p 'fugafugafuga'
         image[:image]
       else
+        p 'hogehogehoge'
         send_file FALLBACK_IMAGE
       end
     end
@@ -972,9 +982,19 @@ module Isupipe
       req = decode_request_body(PostIconRequest)
       image = Base64.decode64(req.image)
 
+
       icon_id = db_transaction do |tx|
+        user = tx.xquery('SELECT * FROM users WHERE id = ?', user_id).first
+        username = user.fetch(:name)
+
         tx.xquery('DELETE FROM icons WHERE user_id = ?', user_id)
         tx.xquery('INSERT INTO icons (user_id, image) VALUES (?, ?)', user_id, image)
+
+        imgfile = IMAGE_DIR + "/#{username}.jpg"
+        File.open(imgfile, "w") do |f|
+          f.write(image)
+        end
+
         tx.last_id
       end
 
