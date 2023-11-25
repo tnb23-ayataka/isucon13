@@ -560,7 +560,8 @@ module Isupipe
         end.to_h
 
         livecomment_models.map do |livecomment_model|
-          comment_owner = id_to_user.fetch(livecomment_model.fetch(:user_id))
+          user_id = livecomment_model.fetch(:user_id)
+          comment_owner = id_to_user[user_id]
 
           livestream = begin
             owner = id_to_user.fetch(livestream_model.fetch(:user_id))
