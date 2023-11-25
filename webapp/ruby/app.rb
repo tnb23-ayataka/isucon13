@@ -111,6 +111,23 @@ module Isupipe
         nil
       end
 
+      def fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
+        owner = owners[livestream_model.fetch(:user_id)]
+        owner = fill_user_response_get(tx, owner, owner_themes, owner_icons)
+        # tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
+        #   {
+        #     id: livestream_tag_model.fetch(:id),
+        #     name: livestream_tag_model.fetch(:name),
+        #   }
+        # end
+
+
+        livestream_model.slice(:id, :title, :description, :playlist_url, :thumbnail_url, :start_at, :end_at).merge(
+          owner: owner,
+          tags: tags[livestream_model.fetch(:id)],
+        )
+      end
+
       def fill_livestream_response(tx, livestream_model)
         owner_model = tx.xquery('SELECT * FROM users WHERE id = ?', livestream_model.fetch(:user_id)).first
         owner = fill_user_response(tx, owner_model)
@@ -154,13 +171,14 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners, tags, owner_themes, owner_icons)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
-        user = fill_user_response(tx, user_model)
+        user = fill_user_response_get(tx, user_model, themes, icons)
 
-        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
-        livestream = fill_livestream_response(tx, livestream_model)
+        # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
+        livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
+        livestream = fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
 
         reaction_model.slice(:id, :emoji_name, :created_at).merge(
           user:,
@@ -178,6 +196,33 @@ module Isupipe
           user:,
           livestream:,
         )
+      end
+
+      def fill_user_response_get(tx, user_model, themes, icons)
+        # theme_model = tx.xquery('SELECT * FROM themes WHERE user_id = ?', user_model.fetch(:id)).first
+        theme_model = themes[user_model.fetch(:id)]
+        icon_model = icons[user_model.fetch(:id)]
+
+        # icon_model = tx.xquery('SELECT image FROM icons WHERE user_id = ?', user_model.fetch(:id)).first
+        image =
+          if icon_model
+            icon_model.fetch(:image)
+          else
+            File.binread(FALLBACK_IMAGE)
+          end
+        icon_hash = Digest::SHA256.hexdigest(image)
+
+        {
+          id: user_model.fetch(:id),
+          name: user_model.fetch(:name),
+          display_name: user_model.fetch(:display_name),
+          description: user_model.fetch(:description),
+          theme: {
+            id: theme_model.fetch(:id),
+            dark_mode: theme_model.fetch(:dark_mode),
+          },
+          icon_hash:,
+        }
       end
 
       def fill_user_response(tx, user_model)
@@ -789,9 +834,63 @@ module Isupipe
             [user.fetch(:id), user]
           end.to_h
 
+          livestream_ids = reaction_models.map do |reaction_model|
+            reaction_model.fetch(:livestream_id)
+          end
+
+
+          livestreams = tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          livestream_ids_to_livestreams = livestreams.map do |livestream|
+            [livestream.fetch(:id), livestream]
+          end.to_h
+
+          owner_ids = livestreams.map do |livestream|
+            livestream.fetch(:user_id)
+          end
+
+          owners = tx.xquery("SELECT * FROM users WHERE id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner = owners.map do |owner|
+            [owner.fetch(:id), owner]
+          end.to_h
+
+          owner_themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner_themes = owner_themes.map do |theme|
+            [theme.fetch(:user_id), theme]
+          end.to_h
+
+          owner_icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner_icons = owner_icons.map do |icon|
+            [icon.fetch(:user_id), icon]
+          end.to_h
+
+          themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+          user_ids_to_themes = themes.map do |theme|
+            [theme.fetch(:user_id), theme]
+          end.to_h
+
+          icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+          user_ids_icons = icons.map do |icon|
+            [icon.fetch(:user_id), icon]
+          end.to_h
+
+          tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          livestream_ids_to_tags = {}
+          tags.each do |tag|
+            livestream_id = tag.fetch(:livestream_id)
+            new_tag = {
+              id: tag.fetch(:id),
+              name: tag.fetch(:name),
+            }
+            if livestream_ids_to_tags.key?(livestream_id)
+              livestream_ids_to_tags[livestream_id] << new_tag
+            else
+              livestream_ids_to_tags[livestream_id] = [new_tag]
+            end
+          end
+
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner, livestream_ids_to_tags, user_ids_to_owner_themes, user_ids_to_owner_icons)
           end
         end
       end
