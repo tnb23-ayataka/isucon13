@@ -28,8 +28,8 @@ mysql-slow.digest:
 	sudo pt-query-digest /var/log/mysql/mysql-slow.log
 
 service.restart:
-	sudo systemctl restart isuconquest.ruby
+	sudo systemctl restart isupipe-ruby
 service.log:
-	sudo journalctl -u isuconquest.ruby
+	sudo journalctl -u isupipe-ruby
 mysql.sh:
 	sudo mysql -uisucon -pisucon -D isupipe
