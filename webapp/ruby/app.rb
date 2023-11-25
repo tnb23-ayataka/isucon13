@@ -784,7 +784,7 @@ module Isupipe
             [icon.fetch(:user_id), icon]
           end.to_h
 
-          tags = tx.xquery("SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
           livestream_ids_to_tags = {}
           tags.each do |tag|
             livestream_id = tag.fetch(:livestream_id)
