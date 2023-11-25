@@ -111,6 +111,21 @@ module Isupipe
         nil
       end
 
+      def fill_livestream_response_get(tx, livestream_model, owners)
+        owner = owners[livestream_model.fetch(:user_id)]
+        tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
+          {
+            id: livestream_tag_model.fetch(:id),
+            name: livestream_tag_model.fetch(:name),
+          }
+        end
+
+        livestream_model.slice(:id, :title, :description, :playlist_url, :thumbnail_url, :start_at, :end_at).merge(
+          owner: owner,
+          tags: tags,
+        )
+      end
+
       def fill_livestream_response(tx, livestream_model)
         owner_model = tx.xquery('SELECT * FROM users WHERE id = ?', livestream_model.fetch(:user_id)).first
         owner = fill_user_response(tx, owner_model)
@@ -154,14 +169,14 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
         user = fill_user_response_get(tx, user_model, themes, icons)
 
         # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
         livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
-        livestream = fill_livestream_response(tx, livestream_model)
+        livestream = fill_livestream_response_get(tx, livestream_model, owners)
 
         reaction_model.slice(:id, :emoji_name, :created_at).merge(
           user:,
@@ -748,6 +763,11 @@ module Isupipe
             reaction_model.fetch(:livestream_id)
           end
 
+          owners = tx.xquery("SELECT * FROM users WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          user_ids_to_owner = owners.map do |owner|
+            [owner.fetch(:id), owner]
+          end.to_h
+
           livestreams = tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
           livestream_ids_to_livestreams = livestreams.map do |livestream|
             [livestream.fetch(:id), livestream]
@@ -763,9 +783,16 @@ module Isupipe
             [icon.fetch(:user_id), icon]
           end.to_h
 
+          # tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
+          #   {
+          #     id: livestream_tag_model.fetch(:id),
+          #     name: livestream_tag_model.fetch(:name),
+          #   }
+          # end
+
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner)
           end
         end
       end
