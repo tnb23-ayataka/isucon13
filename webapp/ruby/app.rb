@@ -20,7 +20,7 @@ Datadog.configure do |c|
   c.version = ENV.fetch('APP_VERSION', '12.0.0')
 end
 
-IMAGE_DIR = File.expand_path('../public/image', __FILE__)
+IMAGE_DIR = File.expand_path('../../public/image', __FILE__)
 
 module Isupipe
   class App < Sinatra::Base
