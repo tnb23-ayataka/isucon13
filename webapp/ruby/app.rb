@@ -395,9 +395,47 @@ module Isupipe
             tx.xquery(query).to_a
           end
 
+        user_ids = livestream_models.map do |livestream_model|
+          livestream_model.fetch(:user_id)
+        end
+        owners = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owners = owners.map do |user|
+          [user.fetch(:id), user]
+        end.to_h
+
+        livestream_ids = livestream_models.map do |livestream_model|
+          livestream_model.fetch(:id)
+        end
+        tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+        livestream_ids_to_tags = {}
+        tags.each do |tag|
+          livestream_id = tag.fetch(:livestream_id)
+          new_tag = {
+            id: tag.fetch(:id),
+            name: tag.fetch(:name),
+          }
+          if livestream_ids_to_tags[livestream_id]
+            livestream_ids_to_tags[livestream_id] << new_tag
+          else
+            livestream_ids_to_tags[livestream_id] = [new_tag]
+          end
+        end
+
+        owner_themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owner_themes = owner_themes.map do |theme|
+          [theme.fetch(:user_id), theme]
+        end.to_h
+
+        owner_icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owner_icons = owner_icons.map do |icon|
+          [icon.fetch(:user_id), icon]
+        end.to_h
+
+
       # def fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
         livestream_models.map do |livestream_model|
-          fill_livestream_response(tx, livestream_model)
+          # fill_livestream_response(tx, livestream_model)
+          fill_livestream_response_get(tx, livestream_model, user_ids_to_owners, livestream_ids_to_tags, owner_themes, owner_icons)
         end
 
       end
