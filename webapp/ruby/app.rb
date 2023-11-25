@@ -420,7 +420,6 @@ module Isupipe
             livestream_ids_to_tags[livestream_id] = [new_tag]
           end
         end
-
         owner_themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
         user_ids_to_owner_themes = owner_themes.map do |theme|
           [theme.fetch(:user_id), theme]
@@ -435,7 +434,7 @@ module Isupipe
       # def fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
         livestream_models.map do |livestream_model|
           # fill_livestream_response(tx, livestream_model)
-          fill_livestream_response_get(tx, livestream_model, user_ids_to_owners, livestream_ids_to_tags, owner_themes, owner_icons)
+          fill_livestream_response_get(tx, livestream_model, user_ids_to_owners, livestream_ids_to_tags, user_ids_to_owner_themes, user_ids_to_owner_icons)
         end
 
       end
