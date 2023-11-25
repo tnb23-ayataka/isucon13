@@ -154,12 +154,13 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
         user = fill_user_response(tx, user_model)
 
-        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
+        # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
+        livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
         livestream = fill_livestream_response(tx, livestream_model)
 
         reaction_model.slice(:id, :emoji_name, :created_at).merge(
@@ -716,9 +717,18 @@ module Isupipe
             [user.fetch(:id), user]
           end.to_h
 
+          livestream_ids = reaction_models.map do |reaction_model|
+            reaction_model.fetch(:livestream_id)
+          end
+
+          livestreams = tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          livestream_ids_to_livestreams = livestreams.map do |livestream|
+            [livestream.fetch(:id), livestream]
+          end.to_h
+
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams)
           end
         end
       end
