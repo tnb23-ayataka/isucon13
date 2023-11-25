@@ -154,8 +154,8 @@ module Isupipe
         )
       end
 
-      def fill_reaction_response(tx, reaction_model)
-        user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
+      def fill_reaction_response(tx, reaction_model, users)
+        # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user = fill_user_response(tx, user_model)
 
         livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
@@ -675,6 +675,7 @@ module Isupipe
     end
 
     get '/api/livestream/:livestream_id/reaction' do
+      binding.pry
       verify_user_session!
 
       livestream_id = cast_as_integer(params[:livestream_id])
@@ -686,8 +687,19 @@ module Isupipe
           limit = cast_as_integer(limit_str)
           query = "#{query} LIMIT #{limit}"
         end
+        reaction_models = tx.xquery(query, livestream_id)
 
-        tx.xquery(query, livestream_id).map do |reaction_model|
+        user_ids = reaction_models.map do |reaction_model|
+          reaction_model.fetch(:user_id)
+        end
+        users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map ( '?').join(',')})", user_ids)
+        user_ids_to_users = users.map do |user|
+          [user.fetch(:id), user]
+        end.to_h
+
+        binding.pry
+
+        reaction_models.map do |reaction_model|
           fill_reaction_response(tx, reaction_model)
         end
       end
