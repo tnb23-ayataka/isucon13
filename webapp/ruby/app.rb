@@ -157,6 +157,7 @@ module Isupipe
 
       def fill_reaction_response(tx, reaction_model, users)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
+        user_model = users[reaction_model.fetch(:user_id)]
         user = fill_user_response(tx, user_model)
 
         livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
@@ -693,7 +694,6 @@ module Isupipe
           reaction_model.fetch(:user_id)
         end
 
-        binding.pry
 
         users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
         user_ids_to_users = users.map do |user|
@@ -701,7 +701,7 @@ module Isupipe
         end.to_h
 
         reaction_models.map do |reaction_model|
-          fill_reaction_response(tx, reaction_model)
+          fill_reaction_response(tx, reaction_model, user_ids_to_users)
         end
       end
 
