@@ -111,18 +111,19 @@ module Isupipe
         nil
       end
 
-      def fill_livestream_response_get(tx, livestream_model, owners)
+      def fill_livestream_response_get(tx, livestream_model, owners, tags)
         owner = owners[livestream_model.fetch(:user_id)]
-        tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
-          {
-            id: livestream_tag_model.fetch(:id),
-            name: livestream_tag_model.fetch(:name),
-          }
-        end
+        # tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
+        #   {
+        #     id: livestream_tag_model.fetch(:id),
+        #     name: livestream_tag_model.fetch(:name),
+        #   }
+        # end
+
 
         livestream_model.slice(:id, :title, :description, :playlist_url, :thumbnail_url, :start_at, :end_at).merge(
           owner: owner,
-          tags: tags,
+          tags: tags[livestream_model.fetch(:id)],
         )
       end
 
@@ -169,14 +170,14 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners, tags)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
         user = fill_user_response_get(tx, user_model, themes, icons)
 
         # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
         livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
-        livestream = fill_livestream_response_get(tx, livestream_model, owners)
+        livestream = fill_livestream_response_get(tx, livestream_model, owners, tags)
 
         reaction_model.slice(:id, :emoji_name, :created_at).merge(
           user:,
@@ -783,16 +784,24 @@ module Isupipe
             [icon.fetch(:user_id), icon]
           end.to_h
 
-          # tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
-          #   {
-          #     id: livestream_tag_model.fetch(:id),
-          #     name: livestream_tag_model.fetch(:name),
-          #   }
-          # end
+          tags = tx.xquery("SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+          livestream_ids_to_tags = {}
+          tags.each do |tag|
+            livestream_id = tag.fetch(:livestream_id)
+            new_tag = {
+              id: tag.fetch(:id),
+              name: tag.fetch(:name),
+            }
+            if livestream_ids_to_tags.key?(livestream_id)
+              livestream_ids_to_tags[livestream_id] << new_tag
+            else
+              livestream_ids_to_tags[livestream_id] = [new_tag]
+            end
+          end
 
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner, livestream_ids_to_tags)
           end
         end
       end
