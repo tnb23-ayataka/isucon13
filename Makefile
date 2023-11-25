@@ -11,7 +11,7 @@ nginx.log:
 nginx.alp:
 	alp json \
 		--sort sum -r \
-		-m "/api/livestream/\w+/statistics,/api/user/\w+/statistics,/api/livestream/\w+/reaction,/api/livestream/\w+/livecomment,/api/livestream/\w+/livecomment/\w+/report,/api/live/stream/\w+,/api/livestream/\w+/enter,/api/livestream/\w+/exit,/api/livestream/\w+/moderate,/api/user/\w+/icon,/api/livestream/\w+/report,/api/livestream/\w+/ngwords,/api/user/\w+/theme,/api/livestream/\w+" \
+		-m "/api/livestream/\d+/statistics,/api/user/\w+/statistics,/api/user/\w+/livestream,/api/livestream/\d+/reaction,/api/livestream/\d+/livecomment,/api/livestream/\d+/livecomment/\d+/report,/api/live/stream/\d+,/api/livestream/\d+/enter,/api/livestream/\d+/exit,/api/livestream/\d+/moderate,/api/user/\w+/icon,/api/livestream/\d+/report,/api/livestream/\d+/ngwords,/api/user/\w+/theme,/api/livestream/\d+" \
 		-o count,method,uri,min,avg,max,sum \
 		< /var/log/nginx/access.log
 
