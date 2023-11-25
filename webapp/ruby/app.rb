@@ -533,8 +533,8 @@ module Isupipe
             themes.dark_mode AS theme_dark_mode,
             icons.image AS icon_image
           FROM users
-          INNER JOIN themes ON themes.user_id = users.id
-          INNER JOIN icons ON icons.user_id = users.id
+          LEFT JOIN themes ON themes.user_id = users.id
+          LEFT JOIN icons ON icons.user_id = users.id
           WHERE users.id IN (#{user_placeholders})
         SQL
         id_to_user = tx.xquery(
