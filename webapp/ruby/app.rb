@@ -11,6 +11,7 @@ require 'sinatra/base'
 require 'sinatra/json'
 require 'ddtrace'
 require 'pry'
+require 'fileutils'
 
 Datadog.configure do |c|
   c.tracing.instrument :sinatra, service_name: "freee.group:ayataka-13-sinatra", analytics_enabled: true
@@ -18,6 +19,8 @@ Datadog.configure do |c|
   c.env = 'prod'
   c.version = ENV.fetch('APP_VERSION', '12.0.0')
 end
+
+IMAGE_DIR = File.expand_path('../public/image', __FILE__)
 
 module Isupipe
   class App < Sinatra::Base
@@ -947,6 +950,11 @@ module Isupipe
         tx.xquery('SELECT image FROM icons WHERE user_id = ?', user.fetch(:id)).first
       end
 
+      imgfile = IMAGE_DIR + "/#{username}.jpg"
+      File.open(imgfile, "w") do |f|
+        f.write(image[:image])
+      end
+
       content_type 'image/jpeg'
       if image
         image[:image]
@@ -977,6 +985,10 @@ module Isupipe
         tx.xquery('INSERT INTO icons (user_id, image) VALUES (?, ?)', user_id, image)
         tx.last_id
       end
+
+      imgfile = IMAGE_DIR + "/#{username}.jpg"
+      FileUtils.mv(image, imgfile)
+      FileUtils.chmod(0644, imgfile)
 
       status 201
       json(
