@@ -23,3 +23,4 @@ ALTER TABLE `tags` auto_increment = 1;
 ALTER TABLE `livecomments` auto_increment = 1;
 ALTER TABLE `livestreams` auto_increment = 1;
 ALTER TABLE `users` auto_increment = 1;
+ALTER TABLE `reactions` ADD INDEX `livestream_id_idx` (`livestream_id`, `created_at`);
