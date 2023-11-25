@@ -10,6 +10,7 @@ require 'securerandom'
 require 'sinatra/base'
 require 'sinatra/json'
 require 'ddtrace'
+require 'pry'
 
 Datadog.configure do |c|
   c.tracing.instrument :sinatra, service_name: "freee.group:ayataka-13-sinatra", analytics_enabled: true
