@@ -36,3 +36,14 @@ ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_tag_id_idx` (`tag_id`);
 
 DROP INDEX `user_id_idx` ON `livestreams`;
 ALTER TABLE `livestreams` ADD INDEX `user_id_idx` (`user_id`);
+
+DROP INDEX `user_id_idx` ON `icons`;
+ALTER TABLE `icons` ADD INDEX `user_id_idx` (`user_id`);
+
+DROP INDEX `user_id_idx` ON `themes`;
+ALTER TABLE `themes` ADD INDEX `user_id_idx` (`user_id`);
+
+DROP INDEX `user_id_idx` ON `livestream_viewers_history`;
+DROP INDEX `livestream_id_idx` ON `livestream_viewers_history`;
+ALTER TABLE `livestream_viewers_history` ADD INDEX `user_id_idx` (`user_id`);
+ALTER TABLE `livestream_viewers_history` ADD INDEX `livestream_id_idx` (`livestream_id`);
