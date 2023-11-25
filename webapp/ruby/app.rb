@@ -957,8 +957,10 @@ module Isupipe
           f.write(image[:image])
         end
 
+        p 'fugafugafuga'
         image[:image]
       else
+        p 'hogehogehoge'
         send_file FALLBACK_IMAGE
       end
     end
