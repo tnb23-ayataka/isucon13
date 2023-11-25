@@ -378,7 +378,7 @@ module Isupipe
           if key_tag_name != ''
             # タグによる取得
             tag_id_list = tx.xquery('SELECT id FROM tags WHERE name = ?', key_tag_name, as: :array).map(&:first)
-            tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.tag_id IN (#{tag_id_list.map {'?'}.join(',')})", tag_id_list)
+            tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.tag_id IN (#{tag_id_list.map {'?'}.join(',')}) ORDER BY lt.livestream_id desc", tag_id_list)
 
             livestream_ids = tags.map do |tag|
               tag.fetch(:livestream_id)
