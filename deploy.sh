@@ -15,6 +15,7 @@ sudo cp -r etc/nginx/ /etc/
 sudo cp -r etc/mysql/ /etc/
 echo "copy config files"
 
+rm -rf /home/isucon/webapp/public/image
 mkdir -p /home/isucon/webapp/public/image
 
 # アプリ・ミドルウェアの再起動
