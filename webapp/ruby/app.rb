@@ -784,9 +784,9 @@ module Isupipe
         query = <<~SQL
           DELETE FROM livecomments
           WHERE livestream_id = ?
-            AND ( #{ng_words.map { |ng_word| "comment LIKE '%?%'" }.join(' OR ')})
+            AND ( #{ng_words.map { |ng_word| "comment LIKE ?" }.join(' OR ')})
         SQL
-        tx.xquery(query, livestream_id, *ng_words.map { |ng_word| ng_word.fetch(:word) })
+        tx.xquery(query, livestream_id, *ng_words.map { |ng_word| "%#{ng_word.fetch(:word)}%" })
 
         # ng_words.each do |ng_word|
         #   # ライブコメント一覧取得
