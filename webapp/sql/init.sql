@@ -39,3 +39,6 @@ ALTER TABLE `livestreams` ADD INDEX `user_id_idx` (`user_id`);
 
 DROP INDEX `user_id_idx` ON `icons`;
 ALTER TABLE `icons` ADD INDEX `user_id_idx` (`user_id`);
+
+DROP INDEX `user_id_idx` ON `themes`;
+ALTER TABLE `themes` ADD INDEX `user_id_idx` (`user_id`);
