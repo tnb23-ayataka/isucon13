@@ -412,7 +412,7 @@ module Isupipe
         livestream_ids = livestream_models.map do |livestream_model|
           livestream_model.fetch(:id)
         end
-        tags = tx.xquery("SELECT * FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+        tags = tx.xquery("SELECT * FROM livestream_tags lt left JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
         livestream_ids_to_tags = {}
         tags.each do |tag|
           livestream_id = tag.fetch(:livestream_id)
