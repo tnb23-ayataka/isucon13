@@ -982,18 +982,20 @@ module Isupipe
       req = decode_request_body(PostIconRequest)
       image = Base64.decode64(req.image)
 
-      user = tx.xquery('SELECT * FROM users WHERE name = ?', username).first
-      username = user.fetch(:name)
 
       icon_id = db_transaction do |tx|
+        user = tx.xquery('SELECT * FROM users WHERE id = ?', user_id).first
+        username = user.fetch(:name)
+
         tx.xquery('DELETE FROM icons WHERE user_id = ?', user_id)
         tx.xquery('INSERT INTO icons (user_id, image) VALUES (?, ?)', user_id, image)
+
+        imgfile = IMAGE_DIR + "/#{username}.jpg"
+        FileUtils.mv(image, imgfile)
+        FileUtils.chmod(0644, imgfile)
+
         tx.last_id
       end
-
-      imgfile = IMAGE_DIR + "/#{username}.jpg"
-      FileUtils.mv(image, imgfile)
-      FileUtils.chmod(0644, imgfile)
 
       status 201
       json(
