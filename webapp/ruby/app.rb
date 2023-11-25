@@ -764,14 +764,19 @@ module Isupipe
             reaction_model.fetch(:livestream_id)
           end
 
-          owners = tx.xquery("SELECT * FROM users WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
-          user_ids_to_owner = owners.map do |owner|
-            [owner.fetch(:id), owner]
-          end.to_h
 
           livestreams = tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
           livestream_ids_to_livestreams = livestreams.map do |livestream|
             [livestream.fetch(:id), livestream]
+          end.to_h
+
+          owner_ids = livestreams.map do |livestream|
+            livestream.fetch(:user_id)
+          end
+
+          owners = tx.xquery("SELECT * FROM users WHERE id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner = owners.map do |owner|
+            [owner.fetch(:id), owner]
           end.to_h
 
           themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
