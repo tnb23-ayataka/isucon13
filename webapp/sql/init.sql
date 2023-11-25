@@ -11,9 +11,6 @@ TRUNCATE TABLE livecomments;
 TRUNCATE TABLE livestreams;
 TRUNCATE TABLE users;
 
-DROP INDEX `livestream_id_idx` ON `reactions`;
-DROP INDEX `livestream_tags_livestream_id_idx` ON `livestream_tags`;
-DROP INDEX `livestream_tags_tag_id_idx` ON `livestream_tags`;
 
 ALTER TABLE `themes` auto_increment = 1;
 ALTER TABLE `icons` auto_increment = 1;
@@ -34,3 +31,5 @@ ALTER TABLE `reactions` ADD INDEX `livestream_id_idx` (`livestream_id`, `created
 
 ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_livestream_id_idx` (`livestream_id`);
 ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_tag_id_idx` (`tag_id`);
+DROP INDEX `livestream_tags_livestream_id_idx` ON `livestream_tags`;
+DROP INDEX `livestream_tags_tag_id_idx` ON `livestream_tags`;
