@@ -381,9 +381,17 @@ module Isupipe
           if key_tag_name != ''
             # タグによる取得
             tag_id_list = tx.xquery('SELECT id FROM tags WHERE name = ?', key_tag_name, as: :array).map(&:first)
-            tx.xquery('SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC', tag_id_list).map do |key_tagged_livestream|
-              tx.xquery('SELECT * FROM livestreams WHERE id = ?', key_tagged_livestream.fetch(:livestream_id)).first
+            tags = tx.xquery("SELECT * FROM livestream_tags lt left JOIN tags t ON lt.tag_id = t.id WHERE lt.tag_id IN (#{tag_id_list.map {'?'}.join(',')}) ORDER BY lt.livestream_id desc", tag_id_list)
+
+            livestream_ids = tags.map do |tag|
+              tag.fetch(:livestream_id)
             end
+
+            tx.xquery("SELECT * FROM livestreams WHERE id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+
+            # tx.xquery('SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC', tag_id_list).map do |key_tagged_livestream|
+            #   tx.xquery('SELECT * FROM livestreams WHERE id = ?', key_tagged_livestream.fetch(:livestream_id)).first
+            # end
           else
             # 検索条件なし
             query = 'SELECT * FROM livestreams ORDER BY id DESC'
@@ -396,11 +404,51 @@ module Isupipe
             tx.xquery(query).to_a
           end
 
-        livestream_models.map do |livestream_model|
-          fill_livestream_response(tx, livestream_model)
+        user_ids = livestream_models.map do |livestream_model|
+          livestream_model.fetch(:user_id)
         end
-      end
+        owners = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owners = owners.map do |user|
+          [user.fetch(:id), user]
+        end.to_h
 
+        livestream_ids = livestream_models.map do |livestream_model|
+          livestream_model.fetch(:id)
+        end
+        tags = tx.xquery("SELECT * FROM livestream_tags lt left JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id IN (#{livestream_ids.map {'?'}.join(',')})", livestream_ids)
+        livestream_ids_to_tags = {}
+        tags.each do |tag|
+          livestream_id = tag.fetch(:livestream_id)
+          new_tag = {
+            id: tag.fetch(:id),
+            name: tag.fetch(:name),
+          }
+          if livestream_ids_to_tags[livestream_id]
+            livestream_ids_to_tags[livestream_id] << new_tag
+          else
+            livestream_ids_to_tags[livestream_id] = [new_tag]
+          end
+        end
+        owner_themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owner_themes = owner_themes.map do |theme|
+          [theme.fetch(:user_id), theme]
+        end.to_h
+
+        owner_icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+        user_ids_to_owner_icons = owner_icons.map do |icon|
+          [icon.fetch(:user_id), icon]
+        end.to_h
+
+
+      # def fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
+        livestream_models.map do |livestream_model|
+          # fill_livestream_response(tx, livestream_model)
+          fill_livestream_response_get(tx, livestream_model, user_ids_to_owners, livestream_ids_to_tags, user_ids_to_owner_themes, user_ids_to_owner_icons)
+        end
+
+      end
+      # livestreamsをdescでsortしたい
+      livestreams = livestreams.sort_by { |livestream| -livestream.fetch(:id) }
       json(livestreams)
     end
 
