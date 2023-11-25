@@ -154,9 +154,21 @@ module Isupipe
           livecomment:,
         )
       end
-
-      def fill_reaction_response(tx, reaction_model, users)
+      def fill_reaction_response_get(tx, reaction_model, users)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
+        user_model = users[reaction_model.fetch(:user_id)]
+        user = fill_user_response(tx, user_model)
+
+        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
+        livestream = fill_livestream_response(tx, livestream_model)
+
+        reaction_model.slice(:id, :emoji_name, :created_at).merge(
+          user:,
+          livestream:,
+        )
+      end
+      def fill_reaction_response(tx, reaction_model)
+        user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user = fill_user_response(tx, user_model)
 
         livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
@@ -693,15 +705,21 @@ module Isupipe
           reaction_model.fetch(:user_id)
         end
 
-        binding.pry
+        if user_ids.empty?
+          reaction_models.map do |reaction_model|
+            fill_reaction_response(tx, reaction_model)
+            # fill_reaction_response_get(tx, reaction_model, user_ids_to_users)
+          end
+        else
+          users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
+          user_ids_to_users = users.map do |user|
+            [user.fetch(:id), user]
+          end.to_h
 
-        users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
-        user_ids_to_users = users.map do |user|
-          [user.fetch(:id), user]
-        end.to_h
-
-        reaction_models.map do |reaction_model|
-          fill_reaction_response(tx, reaction_model)
+          reaction_models.map do |reaction_model|
+            # fill_reaction_response(tx, reaction_model, user_ids_to_users)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users)
+          end
         end
       end
 
