@@ -444,7 +444,8 @@ module Isupipe
         end
 
       end
-
+      # livestreamsをdescでsortしたい
+      livestreams = livestreams.sort_by { |livestream| -livestream.fetch(:id) }
       json(livestreams)
     end
 
