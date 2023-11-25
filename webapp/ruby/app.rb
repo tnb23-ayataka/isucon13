@@ -111,8 +111,9 @@ module Isupipe
         nil
       end
 
-      def fill_livestream_response_get(tx, livestream_model, owners, tags)
+      def fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
         owner = owners[livestream_model.fetch(:user_id)]
+        owner = fill_user_response_get(tx, owner, owner_themes, owner_icons)
         # tags = tx.xquery('SELECT t.id, t.name FROM livestream_tags lt INNER JOIN tags t ON lt.tag_id = t.id WHERE lt.livestream_id = ?', livestream_model.fetch(:id)).map do |livestream_tag_model|
         #   {
         #     id: livestream_tag_model.fetch(:id),
@@ -170,14 +171,14 @@ module Isupipe
           livecomment:,
         )
       end
-      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners, tags)
+      def fill_reaction_response_get(tx, reaction_model, users, livestreams, themes, icons, owners, tags, owner_themes, owner_icons)
         # user_model = tx.xquery('SELECT * FROM users WHERE id = ?', reaction_model.fetch(:user_id)).first
         user_model = users[reaction_model.fetch(:user_id)]
         user = fill_user_response_get(tx, user_model, themes, icons)
 
         # livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', reaction_model.fetch(:livestream_id)).first
         livestream_model = livestreams[reaction_model.fetch(:livestream_id)]
-        livestream = fill_livestream_response_get(tx, livestream_model, owners, tags)
+        livestream = fill_livestream_response_get(tx, livestream_model, owners, tags, owner_themes, owner_icons)
 
         reaction_model.slice(:id, :emoji_name, :created_at).merge(
           user:,
@@ -779,6 +780,16 @@ module Isupipe
             [owner.fetch(:id), owner]
           end.to_h
 
+          owner_themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner_themes = owner_themes.map do |theme|
+            [theme.fetch(:user_id), theme]
+          end.to_h
+
+          owner_icons = tx.xquery("SELECT * FROM icons WHERE user_id IN (#{owner_ids.map {'?'}.join(',')})", owner_ids)
+          user_ids_to_owner_icons = owner_icons.map do |icon|
+            [icon.fetch(:user_id), icon]
+          end.to_h
+
           themes = tx.xquery("SELECT * FROM themes WHERE user_id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
           user_ids_to_themes = themes.map do |theme|
             [theme.fetch(:user_id), theme]
@@ -806,7 +817,7 @@ module Isupipe
 
           reaction_models.map do |reaction_model|
             # fill_reaction_response(tx, reaction_model, user_ids_to_users)
-            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner, livestream_ids_to_tags)
+            fill_reaction_response_get(tx, reaction_model, user_ids_to_users, livestream_ids_to_livestreams, user_ids_to_themes, user_ids_icons, user_ids_to_owner, livestream_ids_to_tags, user_ids_to_owner_themes, user_ids_to_owner_icons)
           end
         end
       end
