@@ -788,25 +788,6 @@ module Isupipe
         SQL
         tx.xquery(query, livestream_id, *ng_words.map { |ng_word| "%#{ng_word.fetch(:word)}%" })
 
-        # ng_words.each do |ng_word|
-        #   # ライブコメント一覧取得
-        #   tx.xquery('SELECT * FROM livecomments').each do |livecomment|
-        #     query = <<~SQL
-        #       DELETE FROM livecomments
-        #       WHERE
-        #       id = ? AND
-        #       livestream_id = ? AND
-        #       (SELECT COUNT(*)
-        #       FROM
-        #       (SELECT ? AS text) AS texts
-        #       INNER JOIN
-        #       (SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
-        #       ON texts.text LIKE patterns.pattern) >= 1
-        #     SQL
-        #     tx.xquery(query, livecomment.fetch(:id), livestream_id, livecomment.fetch(:comment), ng_word.fetch(:word))
-        #   end
-        # end
-
         word_id
       end
 
