@@ -32,4 +32,4 @@ service.restart:
 service.log:
 	sudo journalctl -u isuconquest.ruby
 mysql.sh:
-	sudo mysql -uisucon -pisucon
+	sudo mysql -uisucon -pisucon -D isupipe
