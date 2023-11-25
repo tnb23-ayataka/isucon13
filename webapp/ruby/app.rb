@@ -676,7 +676,6 @@ module Isupipe
     end
 
     get '/api/livestream/:livestream_id/reaction' do
-      binding.pry
       verify_user_session!
 
       livestream_id = cast_as_integer(params[:livestream_id])
@@ -693,12 +692,13 @@ module Isupipe
         user_ids = reaction_models.map do |reaction_model|
           reaction_model.fetch(:user_id)
         end
-        users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map ( '?').join(',')})", user_ids)
+
+        binding.pry
+
+        users = tx.xquery("SELECT * FROM users WHERE id IN (#{user_ids.map {'?'}.join(',')})", user_ids)
         user_ids_to_users = users.map do |user|
           [user.fetch(:id), user]
         end.to_h
-
-        binding.pry
 
         reaction_models.map do |reaction_model|
           fill_reaction_response(tx, reaction_model)
