@@ -498,9 +498,83 @@ module Isupipe
           limit = cast_as_integer(limit_str)
           query = "#{query} LIMIT #{limit}"
         end
+        livecomment_models = tx.xquery(query, livestream_id)
 
-        tx.xquery(query, livestream_id).map do |livecomment_model|
-          fill_livecomment_response(tx, livecomment_model)
+        livestream_model = tx.xquery('SELECT * FROM livestreams WHERE id = ?', livestream_id).first
+
+        tag_query = <<~SQL
+          SELECT
+            tags.id AS id,
+            tags.name AS name,
+            livestream_tags.livestream_id AS livestream_id
+          FROM tags
+          INNER JOIN livestream_tags ON livestream_tags.tag_id = tags.id
+          WHERE livestream_tags.livestream_id = ?
+        SQL
+        tags = tx.xquery(
+          tag_query,
+          livestream_id,
+        ).map do |tag_model|
+          {
+            id: tag_model.fetch(:id),
+            name: tag_model.fetch(:name),
+          }
+        end
+
+        user_ids = livecomment_models.map { |m| m.fetch(:user_id) } + [livestream_model.fetch(:user_id)]
+        user_placeholders = user_ids.map { '?' }.join(',')
+        user_query = <<~SQL
+          SELECT
+            users.id AS id,
+            users.name AS name,
+            users.display_name AS display_name,
+            users.description AS description,
+            themes.id AS theme_id,
+            themes.dark_mode AS theme_dark_mode,
+            icons.image AS icon_image
+          FROM users
+          INNER JOIN themes ON themes.user_id = users.id
+          INNER JOIN icons ON icons.user_id = users.id
+          WHERE users.id IN (#{user_placeholders})
+        SQL
+        id_to_user = tx.xquery(
+          user_query,
+          *user_ids,
+        ).map do |user_model|
+          image = user_model.fetch(:icon_image) || File.binread(FALLBACK_IMAGE)
+          icon_hash = Digest::SHA256.hexdigest(image)
+          [
+            user_model.fetch(:id),
+            {
+              id: user_model.fetch(:id),
+              name: user_model.fetch(:name),
+              display_name: user_model.fetch(:display_name),
+              description: user_model.fetch(:description),
+              theme: {
+                id: user_model.fetch(:theme_id),
+                dark_mode: user_model.fetch(:theme_dark_mode),
+              },
+              icon_hash:,
+            }
+          ]
+        end.to_h
+
+        livecomment_models.map do |livecomment_model|
+          comment_owner = id_to_user.fetch(livecomment_model.fetch(:user_id))
+
+          livestream = begin
+            owner = id_to_user.fetch(livestream_model.fetch(:user_id))
+
+            livestream_model.slice(:id, :title, :description, :playlist_url, :thumbnail_url, :start_at, :end_at).merge(
+              owner:,
+              tags:,
+            )
+          end
+
+          livecomment_model.slice(:id, :comment, :tip, :created_at).merge(
+            user: comment_owner,
+            livestream:,
+          )
         end
       end
 
