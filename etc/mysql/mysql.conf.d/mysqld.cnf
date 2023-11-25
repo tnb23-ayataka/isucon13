@@ -15,7 +15,7 @@
 #
 # * Basic Settings
 #
-user		= mysql
+# user		= mysql
 # pid-file	= /var/run/mysqld/mysqld.pid
 # socket	= /var/run/mysqld/mysqld.sock
 # port		= 3306
@@ -28,12 +28,12 @@ user		= mysql
 #
 # Instead of skip-networking the default is now to listen only on
 # localhost which is more compatible and is not less secure.
-bind-address		= 127.0.0.1
-mysqlx-bind-address	= 127.0.0.1
+# bind-address		= 127.0.0.1
+# mysqlx-bind-address	= 127.0.0.1
 #
 # * Fine Tuning
 #
-key_buffer_size		= 16M
+# key_buffer_size		= 16M
 # max_allowed_packet	= 64M
 # thread_stack		= 256K
 
@@ -41,7 +41,7 @@ key_buffer_size		= 16M
 
 # This replaces the startup script and checks MyISAM tables if needed
 # the first time they are touched
-myisam-recover-options  = BACKUP
+# myisam-recover-options  = BACKUP
 
 # max_connections        = 151
 
