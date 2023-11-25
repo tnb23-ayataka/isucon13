@@ -36,3 +36,6 @@ ALTER TABLE `livestream_tags` ADD INDEX `livestream_tags_tag_id_idx` (`tag_id`);
 
 DROP INDEX `user_id_idx` ON `livestreams`;
 ALTER TABLE `livestreams` ADD INDEX `user_id_idx` (`user_id`);
+
+DROP INDEX `user_id_idx` ON `icons`;
+ALTER TABLE `icons` ADD INDEX `user_id_idx` (`user_id`);
