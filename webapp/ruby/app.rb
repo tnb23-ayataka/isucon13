@@ -782,8 +782,7 @@ module Isupipe
         ng_words = tx.xquery('SELECT * FROM ng_words WHERE livestream_id = ?', livestream_id)
 
         query = <<~SQL
-          DELETE *
-          FROM livecomments
+          DELETE FROM livecomments
           WHERE livestream_id = ?
             AND ( #{ng_words.map { |ng_word| "comment LIKE '%#{ng_word.fetch(:word)}%'" }.join(' OR ')})
         SQL
