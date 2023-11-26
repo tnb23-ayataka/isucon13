@@ -1140,24 +1140,37 @@ module Isupipe
         # ランク算出
         users = tx.xquery('SELECT * FROM users').to_a
 
-        ranking = users.map do |user|
-          reactions = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
-            SELECT COUNT(*) FROM users u
-            INNER JOIN livestreams l ON l.user_id = u.id
-            INNER JOIN reactions r ON r.livestream_id = l.id
-            WHERE u.id = ?
-          SQL
+        user_with_reactions_and_tips = tx.xquery(<<~SQL, as: :array).to_a
+        SELECT u.id, u.name, IFNULL(SUM(l2.tip), 0) + count(*) FROM users u
+          LEFT JOIN livestreams l ON l.user_id = u.id
+          LEFT JOIN livecomments l2 ON l2.livestream_id = l.id
+          LEFT JOIN reactions r ON r.livestream_id = l.id
+          GROUP BY u.id
+        SQL
 
-          tips = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
-            SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-            INNER JOIN livestreams l ON l.user_id = u.id
-            INNER JOIN livecomments l2 ON l2.livestream_id = l.id
-            WHERE u.id = ?
-          SQL
-
-          score = reactions + tips
-          UserRankingEntry.new(username: user.fetch(:name), score:)
+        ranking = user_with_reactions_and_tips.map do |user_id, username, score|
+          UserRankingEntry.new(username: username, score:)
         end
+
+
+        # ranking = users.map do |user|
+        #   reactions = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
+        #     SELECT COUNT(*) FROM users u
+        #     INNER JOIN livestreams l ON l.user_id = u.id
+        #     INNER JOIN reactions r ON r.livestream_id = l.id
+        #     WHERE u.id = ?
+        #   SQL
+
+        #   tips = tx.xquery(<<~SQL, user.fetch(:id), as: :array).first[0]
+        #     SELECT IFNULL(SUM(l2.tip), 0) FROM users u
+        #     INNER JOIN livestreams l ON l.user_id = u.id
+        #     INNER JOIN livecomments l2 ON l2.livestream_id = l.id
+        #     WHERE u.id = ?
+        #   SQL
+
+        #   score = reactions + tips
+        #   UserRankingEntry.new(username: user.fetch(:name), score:)
+        # end
 
         ranking.sort_by! { |entry| [entry.score, entry.username] }
         ridx = ranking.rindex { |entry| entry.username == username }
